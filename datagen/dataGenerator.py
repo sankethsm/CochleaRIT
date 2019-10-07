@@ -17,63 +17,18 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from albumentations import ElasticTransform
 
-#-------------------------------------------------------------------------------
-def combineMasks(ST, SM, SV):
-    """
-    Combine three segmentation masks
-    """
-    STmask = np.where(ST>10., 1., 0.)
-    SMmask = np.where(SM>10., 2., 0.)
-    SVmask = np.where(SV>10., 3., 0.)
-    
-    combineTemp = STmask + SMmask
-    combineTemp = np.where(combineTemp==3, 1, combineTemp)
-    
-    finMask = combineTemp + SVmask
-    finMask = np.where(finMask==4, 1, finMask)
-    finMask = np.where(finMask==5, 2, finMask)
-    
-    return finMask
-
-def rszForModel(vol):
-    rszScan = []
-    finScan = []
-    t1 = time.time()
-    for i in range(vol.shape[2]):
-        slc = vol[:,:,i]
-        rszSlc = cv2.resize(slc, (256,256))
-        rszScan.append(rszSlc)
-    rszScan = np.array(rszScan)
-        
-    for j in range(rszScan.shape[2]):
-        slc2 = rszScan[:,:,j]
-        rszSlc2 = cv2.resize(slc2, (256,256))
-        finScan.append(rszSlc2)
-    finScan = np.array(finScan)
-    t2 = time.time() - t1
-    print('time taken to do interpolation: ',t2)
-    
-    '''
-    volSz = vol.shape
-    scale = tuple([256/x for x in volSz])
-    t1 = time.time()
-    rszVol = zoom(vol, zoom=scale)
-    t2 = time.time() - t1
-    print('time taken to do interpolation: ',t2)
-    '''
-    
-    return finScan.transpose((2,0,1)) #rszVol
+from ..utils.utils import combineMasks, rszForModel
 
 #-------------------------------------------------------------------------------
 class CochleaRIT(Dataset):
 
-    #def __init__(self, dataPartition, dataPath, transform=None):
-    def __init__(self, dataPath, transform=None):
+    def __init__(self, dataPartition, dataPath, transform=None):
+    #def __init__(self, dataPath, transform=None):
         self.dataPath = dataPath
         self.dataList = []
         for foldr in os.listdir(self.dataPath):
             self.dataList.append(os.path.join(self.dataPath, foldr))
-        #self.dataPartition = dataPartition
+        self.dataPartition = dataPartition
         self.transform = transform
 
     def __len__(self):
