@@ -1,2 +1,2 @@
 # CochleaRIT
-Semantic Segmentation for Cochlear Math Modeling
+Semantic Segmentation using Deep Learning for Cochlear Math Modeling
