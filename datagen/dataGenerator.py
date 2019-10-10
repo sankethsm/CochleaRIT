@@ -3,6 +3,9 @@ Data generator for normal training
 """
 
 import os
+import sys
+sys.path.append("..")
+
 import glob
 import random
 import torch
@@ -15,16 +18,16 @@ import time
 from scipy.ndimage.interpolation import zoom
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-from albumentations import ElasticTransform
+from albumentations.augmentations.transforms import ElasticTransform
 
-from ..utils.utils import combineMasks, rszForModel
+from utils_.utils import combineMasks, rszForModel
 
 #-------------------------------------------------------------------------------
 class CochleaRIT(Dataset):
 
     def __init__(self, dataPartition, dataPath, transform=None):
     #def __init__(self, dataPath, transform=None):
-        self.dataPath = dataPath
+        self.dataPath = os.path.join(dataPath, dataPartition)
         self.dataList = []
         for foldr in os.listdir(self.dataPath):
             self.dataList.append(os.path.join(self.dataPath, foldr))
@@ -69,30 +72,34 @@ class CochleaRIT(Dataset):
 
 #-------------------------------------------------------------------------------#
 class Augmentations(object):
-    def __init__(self, dataPartition, alpha, enable=None):
+    def __init__(self, dataPartition, enable=None):
         self.dataPartition = dataPartition
-        self.alpha = alpha
         self.enable = enable
         
     def __call__(self, dataDict):
         if self.enable:
             scan_, mask_ = dataDict['scan'], dataDict['mask']
-            tx = ElasticTransform(p=1, alpha=self.alpha, sigma=self.alpha * 0.05, alpha_affine=self.alpha * 0.03)
+            alpha_ = np.random.randint(25,75)
+            tx = ElasticTransform(p=1, alpha=alpha_, sigma=6, alpha_affine=3)
 
             txdDataSample = tx(image=scan_, mask=mask_)
 
-            elasticScan = txdDataSample['scan']
+            elasticScan = txdDataSample['image']
             elasticMask = txdDataSample['mask']
+            elasticMask = (np.arange(4) == elasticMask[..., None]).astype(np.uint8).transpose((3,0,1,2))
+
 
             elasticScan = elasticScan[np.newaxis, ...]
-            elasticMask = elasticMask[np.newaxis, ...]
+            #elasticMask = elasticMask[np.newaxis, ...]
             dataDict = {'scan': elasticScan, 'mask': elasticMask}
 
         else:
             scan_, mask_ = dataDict['scan'], dataDict['mask']
             
+            mask_ = (np.arange(4) == mask_[..., None]).astype(np.uint8).transpose((3,0,1,2))
+            noTxMask = mask_
             noTxScan = scan_[np.newaxis, ...]
-            noTxMask = mask_[np.newaxis, ...]
+            #noTxMask = mask_[np.newaxis, ...]
             dataDict = {'scan': noTxScan, 'mask': noTxMask}
 
         return dataDict
@@ -108,11 +115,11 @@ class ToTensor(object):
         # numpy image: H x W x D x C
         # torch image: C x H x W x D
         scan_ = scan_.transpose((0, 3, 1, 2))
-        mask_ = mask_.transpose((0, 3, 1, 2))
-        tempImg = torch.from_numpy(scan_)
-        tempMsk = torch.from_numpy(mask_)
+        #mask_ = mask_.transpose((0, 3, 1, 2))
+        tempImg = torch.from_numpy(np.ascontiguousarray(scan_)).to(torch.float32)
+        tempMsk = torch.from_numpy(np.ascontiguousarray(mask_)).to(torch.float32)
 
-        tempImg = tempImg.type(torch.FloatTensor)
-        tempMsk = tempMsk.type(torch.FloatTensor)
+        #tempImg = tempImg.type(torch.FloatTensor)
+        #tempMsk = tempMsk.type(torch.FloatTensor)
         return {'scan': tempImg, 'mask': tempMsk}
 #-------------------------------------------------------------------------------#

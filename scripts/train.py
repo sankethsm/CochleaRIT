@@ -1,9 +1,13 @@
+import sys
+sys.path.append("..")
+
 import torch
 import torch.nn as nn
 import numpy as np
 from sklearn.metrics import jaccard_score
+from tqdm import tqdm
 
-from ..metrics.metrics import GeneralizedDiceLoss
+from metrics.metrics import GeneralizedDiceLoss
 
 #-------------------------------------------------------------------------------#
 
@@ -16,10 +20,9 @@ def trainModel(epoch, model, trainLoader, optimizer, device, debugFlag, trainF=N
     nProcessed = 0
     finalLoss = 0
     listIOU = []
-    nTrain = len(trainLoader.dataset)
     nTotal = len(trainLoader)
 
-    for batch_idx, dataDict in enumerate(trainLoader):
+    for batch_idx, dataDict in tqdm(enumerate(trainLoader), total=nTotal):
         data = dataDict['scan']
         target = dataDict['mask']
         
@@ -27,6 +30,7 @@ def trainModel(epoch, model, trainLoader, optimizer, device, debugFlag, trainF=N
        
         optimizer.zero_grad() 
         output = model(data)
+        #print(output.shape)
 
         criterion = GeneralizedDiceLoss(softmax=True)
         loss = criterion(output, target)
@@ -45,8 +49,9 @@ def trainModel(epoch, model, trainLoader, optimizer, device, debugFlag, trainF=N
         listIOU.append(meanIOU)
         finalLoss += loss.data
         
-    finalIOU = np.mean(np.stack(listIOU, axis=0), axis=0)
-    print('Train Epoch: {} \tDiceLoss: {:.8f}\tMean IOU: {:.8f}'.format(
+    finalIOU = np.mean(np.mean(np.stack(listIOU, axis=0), axis=0),axis=0)
+    finalLoss = finalLoss.cpu().numpy()
+    print('Train Epoch: {} \tTrainDiceLoss: {:.8f}\tMeanTrainIOU: {:.8f}'.format(
             epoch, finalLoss/nTotal, finalIOU))
     
     nTotal = len(trainLoader)

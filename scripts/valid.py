@@ -1,9 +1,12 @@
+import sys
+sys.path.append("..")
+
 import torch
 import torch.nn as nn
 import numpy as np
 from sklearn.metrics import jaccard_score
 
-from ..metrics.metrics import GeneralizedDiceLoss
+from metrics.metrics import GeneralizedDiceLoss
 
 #-------------------------------------------------------------------------------#
 
@@ -15,12 +18,10 @@ def validModel(epoch, model, validLoader, device, debugFlag, validF=None):
         model.eval()
         validLoss = 0
         listIOU = []
-        totL1 = 0
-        totL2 = 0
         nTotal = len(validLoader)
 
         for dict_ in validLoader:
-            data = dict_['image']
+            data = dict_['scan']
             target = dict_['mask']
             data, target = data.to(device), target.to(device)
             
@@ -37,8 +38,9 @@ def validModel(epoch, model, validLoader, device, debugFlag, validF=None):
 
             listIOU.append(meanIOU)
         
-    finalIOU = np.mean(np.stack(listIOU, axis=0), axis=0)
-    print('Valid Epoch: {} \tValidDiceLoss: {:.8f}\tMean IOU: {:.8f}'.format(
+    finalIOU = np.mean(np.mean(np.stack(listIOU, axis=0), axis=0),axis=0)
+    validLoss = validLoss.cpu().numpy()
+    print('Valid Epoch: {} \tValidDiceLoss: {:.8f}\tMeanValidIOU: {:.8f}'.format(
             epoch, validLoss/nTotal, finalIOU))
 
     if not debugFlag:

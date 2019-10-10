@@ -27,21 +27,18 @@ def combineMasks(ST, SM, SV):
 def rszForModel(vol):
     rszScan = []
     finScan = []
-    t1 = time.time()
     for i in range(vol.shape[2]):
         slc = vol[:,:,i]
-        rszSlc = cv2.resize(slc, (256,256))
+        rszSlc = cv2.resize(slc, (128,128))
         rszScan.append(rszSlc)
     rszScan = np.array(rszScan)
         
     for j in range(rszScan.shape[2]):
         slc2 = rszScan[:,:,j]
-        rszSlc2 = cv2.resize(slc2, (256,256))
+        rszSlc2 = cv2.resize(slc2, (128,128))
         finScan.append(rszSlc2)
     finScan = np.array(finScan)
-    t2 = time.time() - t1
-    print('time taken to do interpolation: ',t2)
-    
+
     '''
     volSz = vol.shape
     scale = tuple([256/x for x in volSz])

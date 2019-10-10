@@ -1,4 +1,4 @@
-## Base VNET model used at Health Lab
+# One part of VNET removed
 
 import torch
 import torch.nn as nn
@@ -114,9 +114,9 @@ class UpTransition(nn.Module):
         return upsample
 
 
-class VNet3D_HL(nn.Module):
+class VNet3D_LR(nn.Module):
     def __init__(self, reluType, doRate, seed=16, convs=3):
-        super(VNet3D_HL, self).__init__()
+        super(VNet3D_LR, self).__init__()
         self.seed = seed
         self.convIn1 = nn.Conv3d(1, seed, kernel_size=5, padding=2)
         self.bNormIn1 = BatchNorm3D_(seed)
@@ -129,36 +129,37 @@ class VNet3D_HL(nn.Module):
         
         self.downTr2 = DownTransition(seed, 2*seed, 2, reluType, doRate)
         self.downTr3 = DownTransition(2*seed, 4*seed, convs, reluType, doRate)
-        self.downTr4 = DownTransition(4*seed, 8*seed, convs, reluType, doRate)
 
-        self.conv51 = nn.Conv3d(8*seed, 16*seed, kernel_size=5, padding=2)
-        self.bnorm51 = BatchNorm3D_(16*seed)
-        self.actvn51 = activationChoice(reluType)
+        self.conv41 = nn.Conv3d(4*seed, 8*seed, kernel_size=5, padding=2)
+        self.bnorm41 = BatchNorm3D_(8*seed)
+        self.actvn41 = activationChoice(reluType)
 
-        self.conv52 = nn.Conv3d(16*seed, 16*seed, kernel_size=5, padding=2)
-        self.bnorm52 = BatchNorm3D_(16*seed)
-        self.actvn52 = activationChoice(reluType)
+        self.conv42 = nn.Conv3d(8*seed, 8*seed, kernel_size=5, padding=2)
+        self.bnorm42 = BatchNorm3D_(8*seed)
+        self.actvn42 = activationChoice(reluType)
 
-        self.conv53 = nn.Conv3d(16*seed, 16*seed, kernel_size=5, padding=2)
-        self.bnorm53 = BatchNorm3D_(16*seed)
-        self.actvn53 = activationChoice(reluType)
+        self.conv43 = nn.Conv3d(8*seed, 8*seed, kernel_size=5, padding=2)
+        self.bnorm43 = BatchNorm3D_(8*seed)
+        self.actvn43 = activationChoice(reluType)
 
-        self.us4 = nn.ConvTranspose3d(16*seed, 8*seed, kernel_size=2, stride=2, padding=0)
-        self.bnormUS4 = BatchNorm3D_(8*seed)
-        self.doUS4 = Dropout3D_(doRate)
-        self.actvnUS4 = activationChoice(reluType)
+        self.us3 = nn.ConvTranspose3d(8*seed, 4*seed, kernel_size=2, stride=2, padding=0)
+        self.bnormUS3 = BatchNorm3D_(4*seed)
+        self.doUS3 = Dropout3D_(doRate)
+        self.actvnUS3 = activationChoice(reluType)
 
-        self.upTr3 = UpTransition(16*seed, 8*seed, convs, reluType, doRate)
         self.upTr2 = UpTransition(8*seed, 4*seed, convs, reluType, doRate)
-        self.upTr1 = UpTransition(4*seed, 2*seed, 2, reluType, doRate)
+        self.upTr1 = UpTransition(4*seed, 2*seed, convs, reluType, doRate)
 
         self.convOut1 = nn.Conv3d(2*seed, seed, kernel_size=5, padding=2)
         self.bNormOut1 = BatchNorm3D_(seed)
         self.actvnOut1 = activationChoice(reluType)
 
-        self.convOutFinal = nn.Conv3d(seed, 4, kernel_size=1, stride=1, padding=0)
+        self.convOutFinal = nn.Conv3d(seed, 1, kernel_size=1, stride=1, padding=0)
 
         self.sigmoid = nn.Sigmoid()
+
+        ## incase of low resolution SCE, use upsample
+        self.usLR = nn.Upsample(size=(48, 128, 192), mode='trilinear')
 
 
     def forward(self, x, bnormNeed=True, doNeed=True):
@@ -181,36 +182,34 @@ class VNet3D_HL(nn.Module):
 
         out2ds, skip2 = self.downTr2(out1ds)
         out3ds, skip3 = self.downTr3(out2ds)
-        out4ds, skip4 = self.downTr4(out3ds)
 
-        out51 = self.conv51(out4ds)
+        out41 = self.conv41(out3ds)
         if bnormNeed==True:
-            out51 = self.bnorm51(out51)
-        out51 = self.actvn51(out51)
+            out41 = self.bnorm41(out41)
+        out41 = self.actvn41(out41)
 
-        out52 = self.conv52(out51)
+        out42 = self.conv42(out41)
         if bnormNeed==True:
-            out52 = self.bnorm52(out52)
-        out52 = self.actvn52(out52)
+            out42 = self.bnorm42(out42)
+        out42 = self.actvn42(out42)
 
-        out53 = self.conv52(out52)
+        out43 = self.conv42(out42)
         if bnormNeed==True:
-            out53 = self.bnorm53(out53)
-        out53 = self.actvn53(out53)
+            out43 = self.bnorm43(out43)
+        out43 = self.actvn43(out43)
 
-        out4Cat = torch.cat([out4ds]*2, 1)
+        out3Cat = torch.cat([out3ds]*2, 1)
 
-        out5Add = torch.add(out53, out4Cat)
+        out4Add = torch.add(out43, out3Cat)
 
-        out4us = self.us4(out5Add)
-        out4us = self.actvnUS4(out4us)
+        out3us = self.us3(out4Add)
+        out3us = self.actvnUS3(out3us)
         
         if bnormNeed==True:
-            out4us = self.bnormUS4(out4us)
+            out3us = self.bnormUS3(out3us)
         if doNeed==True:
-            out4us = self.doUS4(out4us)
+            out3us = self.doUS3(out3us)
 
-        out3us = self.upTr3(out4us, skip4)
         out2us = self.upTr2(out3us, skip3)
         out1us = self.upTr1(out2us, skip2)
 
@@ -224,9 +223,12 @@ class VNet3D_HL(nn.Module):
         outAdd = torch.add(outTr, out1us)
         outTrLast = self.convOutFinal(outAdd)
 
-        #outSigmoid = self.sigmoid(outTrLast)
+        outSigmoid = self.sigmoid(outTrLast)
+        
+        ## incase of low resolution SCE
+        outSigmoid = self.usLR(outSigmoid)
 
-        return outTrLast#outSigmoid
+        return outSigmoid
 
 
 
