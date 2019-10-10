@@ -1,7 +1,7 @@
 """
-Written by Sanketh S. Moudgalya as part of UR Health Lab internship
+Written by Sanketh S. Moudgalya
 
-Training script
+Run script
 """
 import os
 import datetime
@@ -38,18 +38,17 @@ start_time = datetime.datetime.now()
 
 #-------------------------------------------------------------------------------#
 rootFolder = "C:\\Users\\sm5797\\Documents\\CochleaRIT\\"
-#rootFolder = '/media/hlab/Main/Sanketh/oldWork/new_data_elastic/'
 
 #-------------------------------------------------------------------------------#
 ## Fill these first
 modelTypeFlag = 'HR' # Takes HR, DSUS, ParaVNET, DilVNET
-sceFlag = 'HR' # Takes HR, LR and None
+#sceFlag = 'HR' # Takes HR, LR and None
 debugFlag = False # Set to True if you do not want logs to be created during debug
 optims = ['adam']
 lrs = [0.00001]#np.linspace(0.001, 0.00001, 10)
 bsze = [1]
 mm = 0.9
-notes = "SCE " + sceFlag + " with " + modelTypeFlag +""
+notes = modelTypeFlag +" VNet, Inital run."
 
 #-------------------------------------------------------------------------------#
 
@@ -107,7 +106,7 @@ def main():
                         print("=> loading checkpoint '{}'".format(args.resume))
                         checkpoint = torch.load(args.resume)
                         args.start_epoch = checkpoint['epoch']
-                        best_prec1 = checkpoint['best_prec1']
+                        bestPred = checkpoint['best_pred']
                         model.load_state_dict(checkpoint['state_dict'])
                         print("=> loaded checkpoint '{}' (epoch {})"
                             .format(args.evaluate, checkpoint['epoch']))
