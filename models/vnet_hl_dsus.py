@@ -277,16 +277,16 @@ class VNet3D_DSUS_LR(nn.Module):
         self.bNormOut1 = BatchNorm3D_(seed)
         self.actvnOut1 = activationChoice(reluType)
 
-        self.convOutFinal = nn.Conv3d(seed, 1, kernel_size=1, stride=1, padding=0)
+        self.convOutFinal = nn.Conv3d(seed, 4, kernel_size=1, stride=1, padding=0)
 
         self.sigmoid = nn.Sigmoid()
 
         ## incase of low resolution SCE, use upsample
-        self.outUS = nn.Upsample(size=(48, 128, 192), mode='trilinear')
+        self.outUS = nn.Upsample(size=(128, 128, 128), mode='trilinear')
 
 
     def forward(self, x, bnormNeed=True, doNeed=True):
-        inDS = F.interpolate(x,size=(48, 64, 96), mode='trilinear')
+        inDS = F.interpolate(x,size=(64, 64, 64), mode='trilinear')
         inTr = self.convIn1(inDS)
         if bnormNeed==True:
             inTr = self.bNormIn1(inTr)
@@ -347,10 +347,10 @@ class VNet3D_DSUS_LR(nn.Module):
         outAdd = torch.add(outTr, out1us)
         outTrLast = self.convOutFinal(outAdd)
         
-        outSigmoid = self.sigmoid(outTrLast)
+        #outSigmoid = self.sigmoid(outTrLast)
 
         ## incase of low resolution SCE
-        outSigmoid = self.outUS(outSigmoid)
+        outSigmoid = self.outUS(outTrLast)
 
         return outSigmoid
 

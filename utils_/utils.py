@@ -64,7 +64,7 @@ def save_checkpoint(state, is_best, path, prefix, filename='checkpoint.pth.tar')
     prefix_save = os.path.join(path, 'checkpoints', prefix)
     #print(prefix_save)
     epochNum = state['epoch']
-    name = prefix_save + '_' + str(epochNum) + '_' + filename
+    name = prefix_save + '_' + 'latest_' + filename
     torch.save(state, name)
     if is_best:
         shutil.copyfile(name, prefix_save + '_model_best.pth.tar')

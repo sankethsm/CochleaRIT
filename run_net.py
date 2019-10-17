@@ -22,6 +22,8 @@ from models.vnet_hl_lowres import VNet3D_LR
 from models.vnet_hl_dsus import VNet3D_DSUS_LR
 from models.vnet_hl_parallel import VNet_Parll
 from models.vnet_hl_dilated import VNet3D_Parallel_LR
+from models.vnet_3D_reduced import VNet3D_Reduced
+from models.DenseNet import DenseNet3D
 from utils_.utils import adjust_opt, datestr, save_checkpoint
 from datagen.dataGenerator import CochleaRIT, Augmentations, ToTensor
 from scripts.train import trainModel
@@ -41,14 +43,14 @@ rootFolder = "C:\\Users\\sm5797\\Documents\\CochleaRIT\\"
 
 #-------------------------------------------------------------------------------#
 ## Fill these first
-modelTypeFlag = 'HR' # Takes HR, DSUS, ParaVNET, DilVNET
+modelTypeFlag = 'DenseNet' # Takes HR, DSUS, ParaVNET, DilVNET, RedVNet, DenseNet
 #sceFlag = 'HR' # Takes HR, LR and None
-debugFlag = False # Set to True if you do not want logs to be created during debug
+debugFlag = False # Set to True if you do not want logs to be created during debugging
 optims = ['adam']
-lrs = [0.00001]#np.linspace(0.001, 0.00001, 10)
+lrs = [0.00001] #np.linspace(0.001, 0.00001, 10)
 bsze = [1]
 mm = 0.9
-notes = modelTypeFlag +" VNet, Inital run."
+notes = modelTypeFlag +" Run. "+""
 
 #-------------------------------------------------------------------------------#
 
@@ -100,13 +102,21 @@ def main():
                 # VNET with each convolutional loop in every part having different dilations.
                 elif modelTypeFlag == 'DilVNET':
                     model = VNet3D_Parallel_LR(reluType=actvnType, doRate=dropRate, seed=16)
+
+                # Reduced VNet with 1 convolution loop instead of 1
+                elif modelTypeFlag == 'RedVNet':
+                    model = VNet3D_Reduced(reluType=actvnType, doRate=dropRate, seed=16)
+
+                # Reduced VNet with 1 convolution loop instead of 1
+                elif modelTypeFlag == 'DenseNet':
+                    model = DenseNet3D(dropout=True, prob=0.05)
                 
                 if args.resume:
                     if os.path.isfile(args.resume):
                         print("=> loading checkpoint '{}'".format(args.resume))
                         checkpoint = torch.load(args.resume)
                         args.start_epoch = checkpoint['epoch']
-                        bestPred = checkpoint['best_pred']
+                        bestPred = checkpoint['bestPred']
                         model.load_state_dict(checkpoint['state_dict'])
                         print("=> loaded checkpoint '{}' (epoch {})"
                             .format(args.evaluate, checkpoint['epoch']))
@@ -125,11 +135,11 @@ def main():
                 
                 #-------------------------------------------------------------------#
                 if not debugFlag:
-                    writer = SummaryWriter(logdir='.\\logs\\vnet_{}_{}_{}_{}'.format(datestr(), opts, bs, str(l)))
+                    writer = SummaryWriter(logdir='.\\logs\\cochlea_{}_{}_{}_{}'.format(datestr(), opts, bs, str(l)))
                     print(opts, l, bs)
 
                 #-------------------------------------------------------------------#
-                    sav_fol = args.save or '.\\torchRuns\\vnet_{}_{}_{}_{}'.format(datestr(), opts, bs, str(l))
+                    sav_fol = args.save or '.\\torchRuns\\cochlea_{}_{}_{}_{}'.format(datestr(), opts, bs, str(l))
 
                     if os.path.exists(sav_fol)==False:
                         os.mkdir(sav_fol)

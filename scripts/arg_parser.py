@@ -13,7 +13,7 @@ def argParser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batchSz', type=int, default=1)
 
-    parser.add_argument('--nEpochs', type=int, default=500)
+    parser.add_argument('--nEpochs', type=int, default=1000)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--mm', type=float, default=0.9)
 
